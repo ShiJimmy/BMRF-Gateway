@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BMRF-Gateway</string>
+    <string name="subtitle">BrandMeister / RF Uplink Gateway</string>
+    <string name="status_idle">DISCONNECTED</string>
+    <string name="current_call_idle">No active call</string>
+
+    <string name="hint_host">Master host</string>
+    <string name="hint_port">Master port</string>
+    <string name="hint_id">Repeater/hotspot DMR ID (7-digit CCS7)</string>
+    <string name="hint_callsign">Callsign</string>
+    <string name="hint_password">BrandMeister password</string>
+
+    <string name="section_talkgroups">TALKGROUPS (BrandMeister API)</string>
+    <string name="hint_api_key">BrandMeister API key</string>
+    <string name="hint_ts1_tg">Timeslot 1 talkgroups (comma, e.g. 91)</string>
+    <string name="hint_ts2_tg">Timeslot 2 talkgroups (comma, e.g. 4602)</string>
+    <string name="action_apply_talkgroups">Apply talkgroups</string>
+
+    <string name="default_host">4602.master.brandmeister.network</string>
+    <string name="default_port">62030</string>
+    <string name="default_id">4615543</string>
+
+    <string name="action_start">Start</string>
+    <string name="action_stop">Stop</string>
+    <string name="label_audio">Play downlink audio</string>
+    <string name="hint_audio_talkgroups">BM talkgroups: show/play only these (comma, blank = all)</string>
+
+    <string name="section_current">CURRENT CALL</string>
+    <string name="section_network">NETWORK</string>
+    <string name="section_stats">STATISTICS</string>
+    <string name="section_recent">RECENT CALLS</string>
+    <string name="section_connection">CONNECTION</string>
+    <string name="section_rf">RF RECEIVER (RTL-SDR)</string>
+
+    <string name="hint_freq">DMR carrier frequency (Hz)</string>
+    <string name="hint_rate">Sample rate (Hz)</string>
+    <string name="hint_gain">Gain (tenths dB, 0 = auto)</string>
+    <string name="hint_ppm">PPM correction</string>
+    <string name="hint_rf_timeslot">RF timeslot (1/2, 0 = both)</string>
+    <string name="action_open_sdr">Open RTL-SDR</string>
+    <string name="default_sdr_freq">432750000</string>
+    <string name="default_sdr_rate">240000</string>
+    <string name="sdr_idle">RTL-SDR idle</string>
+    <string name="label_rf_receive">Receive RF (RTL-SDR)</string>
+    <string name="label_rf_audio">Play RF voice (uplink audio)</string>
+    <string name="label_rf_forward">Forward RF to BrandMeister</string>
+</resources>

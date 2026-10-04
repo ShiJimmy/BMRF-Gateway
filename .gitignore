@@ -1,0 +1,17 @@
+build/
+build-mbelib/
+build-android/
+.gradle/
+local.properties
+android/local.properties
+android/.cxx/
+*.iml
+.idea/
+.DS_Store
+captures/
+*.log
+*.wav
+*.cu8
+*.apk
+build-gradle.*
+bmrf_capture*.txt

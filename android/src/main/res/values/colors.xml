@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="panel">#11000000</color>
+    <color name="state_ok">#2E7D32</color>
+    <color name="state_warn">#F9A825</color>
+    <color name="state_off">#616161</color>
+    <color name="state_bad">#C62828</color>
+</resources>
