@@ -1,0 +1,97 @@
+dsdcc (1.9.0-1) unstable; urgency=medium
+
+  * All: tolerate some mismatching symbols in the sync sequence. Implements #36
+  * DMR BP: apply only to the 49 bits of data
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Sat, 25 Jul 2020 10:38:11 +0200
+
+dsdcc (1.8.4-1) unstable; urgency=medium
+
+  * NXDN: take RTCH-C frames into consideration
+  * MSVC compatibility
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Sat, 01 Dec 2018 20:15:15 +0100
+
+dsdcc (1.8.3-1) unstable; urgency=medium
+
+  * NXDN: support full rate (EFR)
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Thu, 28 Jun 2018 14:15:15 +0200
+
+dsdcc (1.8.2-1) unstable; urgency=medium
+
+  * Fixed compilation errors
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Sun, 24 Jun 2018 18:15:15 +0200
+
+dsdcc (1.8.1-1) unstable; urgency=medium
+
+  * High pass filter enhancement
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Sun, 24 Jun 2018 17:15:15 +0200
+
+dsdcc (1.8.0-1) unstable; urgency=medium
+
+  * NXDN implementation
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Sun, 24 Jun 2018 16:15:15 +0200
+
+dsdcc (1.7.7-1) unstable; urgency=medium
+
+  * Reverted Implement DMR negative
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Tue, 24 Apr 2018 16:15:15 +0200
+
+dsdcc (1.7.6-1) unstable; urgency=medium
+
+  * Upsampling by 2,3,4,5 with mbelib decoding
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Mon, 23 Apr 2018 16:15:15 +0200
+
+dsdcc (1.7.5-1) unstable; urgency=medium
+
+  * Implemented DMR negative
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Sat, 31 Mar 2018 16:15:15 +0200
+
+dsdcc (1.7.4-1) unstable; urgency=medium
+
+  * changed optional audio high pass filter cutoff down to 240 Hz @ -3 dB
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Tue, 02 Jan 2018 18:15:15 +0100
+
+dsdcc (1.7.3-1) unstable; urgency=medium
+
+  * Added optional audio high pass filter when processing with mbelib
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Tue, 26 Dec 2017 19:15:15 +0100
+
+dsdcc (1.7.2-1) unstable; urgency=medium
+
+  * Activated compiler warnings and made corresponding fixes
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Thu, 25 May 2017 23:15:15 +0200
+
+dsdcc (1.7.1-1) unstable; urgency=medium
+
+  * Make PLL to track symbol synchronization optional
+  * YSF: fixed FICH code
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Sun, 07 May 2017 11:15:15 +0200
+
+dsdcc (1.7.0-1) unstable; urgency=medium
+
+  * Implemented PLL to track symbol synchronization
+  * Code cleanup with cppcheck and Eclipse possibly fixing occasional segfault
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Sat, 06 May 2017 11:15:15 +0200
+
+dsdcc (1.6.0-1) unstable; urgency=medium
+
+  * Initial release as a Debian package
+  * Code refactoring with some changes in interface from 1.5.5
+  * Added options to log formatted messages containing the traffic control information
+  * Added options to specify own geographical position
+
+ -- Edouard Griffiths, F4EXB <f4exb06@gmail.com>  Sat, 14 Jan 2017 11:15:15 +0100
+

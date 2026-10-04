@@ -1,0 +1,17 @@
+.cproject
+.project
+.settings
+build*
+testfec/*.o
+testfec/qr
+testfec/golay20
+testfec/golay23
+testfec/golay24
+testfec/hamming7
+testfec/hamming12
+testfec/hamming15
+testfec/hamming16
+testfec/viterbi
+testfec/viterbi35
+testfec/crc
+testfec/pn
