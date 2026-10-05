@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace bmrf::brandmeister {
 
@@ -45,6 +46,11 @@ public:
 private:
     uintptr_t m_socket = static_cast<uintptr_t>(-1);
     std::string m_peer;
+    // Resolved peer sockaddr, used with an unconnected socket (sendto); the
+    // BrandMeister native protocol replies from a different source port, which a
+    // connect()ed socket would drop.
+    std::vector<uint8_t> m_peerAddr;
+    int m_peerAddrLen = 0;
 };
 
 } // namespace bmrf::brandmeister

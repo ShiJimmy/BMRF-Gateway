@@ -18,6 +18,11 @@ namespace bmrf::rf {
 namespace {
 // Keep downlink muted for this long after the last RF voice burst.
 constexpr uint64_t kRfDuckHoldMs = 500;
+#if defined(BMRF_USE_DSDCC)
+// A gap in decoded voice bursts larger than this marks the start of a new RF
+// transmission (a PTT release). DMR inter-burst gaps are tens of ms.
+constexpr uint64_t kRfNewTxGapNs = 300ULL * 1000000ULL;
+#endif
 } // namespace
 
 RfReceiver::RfReceiver(std::unique_ptr<IDmrBurstSource> source)
@@ -122,6 +127,26 @@ void RfReceiver::run()
             uint8_t payload[33];
             int seq = 0;
             while (m_dsdcc->takePayload(payload, &seq)) {
+                // After a gap (new transmission) wait until the embedded LC has
+                // been decoded afresh: otherwise its addressing still carries the
+                // previous talkgroup for up to a superframe, which briefly starts
+                // a BrandMeister call on the previous talkgroup after a switch.
+                {
+                    const uint64_t now_ns = nowNs();
+                    const uint64_t lc_ver = m_dsdcc->lcDecodeVersion();
+                    if (m_lastPayloadNs != 0 && now_ns > m_lastPayloadNs &&
+                        (now_ns - m_lastPayloadNs) > kRfNewTxGapNs) {
+                        m_lcAtGap = lc_ver;
+                        m_waitFreshLc = true;
+                    }
+                    m_lastPayloadNs = now_ns;
+                    if (m_waitFreshLc) {
+                        if (lc_ver == m_lcAtGap)
+                            continue; // stale/previous LC; wait for a refresh
+                        m_waitFreshLc = false;
+                    }
+                }
+
                 DMRFrame frame;
                 frame.source = DMRFrame::Source::Rf;
                 frame.timestamp_ns = nowNs();
@@ -131,9 +156,14 @@ void RfReceiver::run()
                 frame.destination_id = m_dsdcc->destinationId();
 
                 // Skip bursts whose Link Control has not been recovered yet (the
-                // first burst or two carry no addressing). Forwarding them would
-                // create a bogus src=0/dst=0 call and a useless Voice LC header.
-                if (frame.source_id == 0 || frame.destination_id == 0)
+                // first burst or two carry no addressing), and the all-ones
+                // broadcast/reserved IDs DSDcc emits when the embedded LC failed.
+                // Forwarding them would create a bogus Uplink to an invalid
+                // talkgroup that BrandMeister does not route.
+                const uint32_t bad = 0xFFFFFFu;
+                if (frame.source_id == 0 || frame.destination_id == 0 ||
+                    frame.source_id == bad || frame.destination_id == bad ||
+                    frame.source_id == bad - 1u || frame.destination_id == bad - 1u)
                     continue;
 
                 frame.call_type =

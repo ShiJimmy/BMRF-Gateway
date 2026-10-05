@@ -19,7 +19,8 @@ DMRData toDmrData(const DMRFrame& frame, uint32_t repeater_id, uint32_t stream_i
     // accepts): 0x80 slot2, 0x40 private, 0x20 data sync, 0x10 voice sync, low
     // nibble = voice frame index N (or data type).
     uint8_t options = 0;
-    // TEMP experiment: force uplink timeslot 2 (matches the working DroidStar).
+    // Uplink on timeslot 2, matching the working DroidStar hotspot behaviour.
+    // (The RF side may be timeslot 1; BrandMeister routes on the talkgroup.)
     options |= 0x80;
     if (frame.call_type == CallType::Private)
         options |= 0x40;
@@ -40,11 +41,12 @@ DMRData toDmrData(const DMRFrame& frame, uint32_t repeater_id, uint32_t stream_i
 
     std::memcpy(data.data.data(), frame.ambe.data(), kDmrPayloadBytes);
 
-    if (frame.ber_percent)
-        data.ber = static_cast<uint8_t>(*frame.ber_percent);
-    if (frame.rssi_dbm)
-        data.rssi = static_cast<uint8_t>(*frame.rssi_dbm);
-    data.has_metrics = true;
+    // The RF measurements are local and, for RSSI, not even dBm (they are dBFS).
+    // BrandMeister/DroidStar send zero here; forwarding a wrapped negative RSSI
+    // (e.g. 236) is better avoided.
+    data.ber = 0;
+    data.rssi = 0;
+    data.has_metrics = false;
 
     return data;
 }

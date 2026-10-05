@@ -19,4 +19,7 @@ target_link_libraries(bmrf_capture_replay PRIVATE bmrf_core)
 if(BMRF_USE_DSDCC)
     add_executable(bmrf_rf_dsd_dump rf_dsd_dump.cpp)
     target_link_libraries(bmrf_rf_dsd_dump PRIVATE bmrf_core)
+
+    add_executable(bmrf_bm_uplink_probe bm_uplink_probe.cpp)
+    target_link_libraries(bmrf_bm_uplink_probe PRIVATE bmrf_core)
 endif()

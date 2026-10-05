@@ -7,6 +7,7 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Rect
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.MotionEvent
@@ -15,6 +16,8 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
@@ -24,7 +27,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.switchmaterial.SwitchMaterial
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -58,6 +63,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rfReceiveSwitch: SwitchMaterial
     private lateinit var rfAudioSwitch: SwitchMaterial
     private lateinit var rfForwardSwitch: SwitchMaterial
+    private lateinit var contactStatusText: TextView
+    private lateinit var contactsPicker: ActivityResultLauncher<Array<String>>
     private var suppressSwitchCallback = false
 
     private val adapter = CallAdapter()
@@ -100,6 +107,7 @@ class MainActivity : AppCompatActivity() {
         rfReceiveSwitch = findViewById(R.id.rfReceiveSwitch)
         rfAudioSwitch = findViewById(R.id.rfAudioSwitch)
         rfForwardSwitch = findViewById(R.id.rfForwardSwitch)
+        contactStatusText = findViewById(R.id.contactStatusText)
 
         findViewById<RecyclerView>(R.id.historyList).apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
@@ -140,6 +148,16 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.stopButton).setOnClickListener { stopGateway() }
         findViewById<Button>(R.id.openSdrButton).setOnClickListener { openSdr() }
         findViewById<Button>(R.id.applyTgsButton).setOnClickListener { applyTalkgroups() }
+
+        CallsignDb.load(this)
+        updateContactStatus()
+        contactsPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null)
+                importContacts(uri)
+        }
+        findViewById<Button>(R.id.importContactsButton).setOnClickListener {
+            contactsPicker.launch(arrayOf("text/*", "text/comma-separated-values", "text/tab-separated-values", "*/*"))
+        }
 
         loadConnectionFields()
         requestNotificationPermission()
@@ -193,7 +211,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadConnectionFields() {
         hostInput.setText(prefs.getString("host", "4602.master.brandmeister.network"))
-        portInput.setText(prefs.getString("port", "62030"))
+        portInput.setText(prefs.getString("port", "62031"))
         idInput.setText(prefs.getString("id", "4615543"))
         callsignInput.setText(prefs.getString("callsign", ""))
         passwordInput.setText(prefs.getString("password", ""))
@@ -244,11 +262,44 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateContactStatus() {
+        val count = CallsignDb.count()
+        contactStatusText.text = if (count > 0)
+            getString(R.string.contacts_loaded, count)
+        else
+            getString(R.string.contacts_none)
+    }
+
+    private fun importContacts(uri: Uri) {
+        Toast.makeText(this, "Importing contacts…", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            val imported = withContext(Dispatchers.IO) {
+                CallsignDb.importFrom(this@MainActivity, uri)
+            }
+            updateContactStatus()
+            if (imported > 0) {
+                adapter.notifyDataSetChanged()
+                renderCurrentCall(BmrfService.currentCall.value)
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.contacts_imported, imported),
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.contacts_import_failed),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
     private fun startGateway() {
         saveConnectionFields()
         val intent = Intent(this, BmrfService::class.java).apply {
             putExtra(BmrfService.EXTRA_HOST, hostInput.text.toString().ifBlank { "4602.master.brandmeister.network" })
-            putExtra(BmrfService.EXTRA_PORT, portInput.text.toString().toIntOrNull() ?: 62030)
+            putExtra(BmrfService.EXTRA_PORT, portInput.text.toString().toIntOrNull() ?: 62031)
             putExtra(BmrfService.EXTRA_REPEATER_ID, idInput.text.toString().toIntOrNull() ?: 0)
             putExtra(BmrfService.EXTRA_CALLSIGN, callsignInput.text.toString().ifBlank { "BMRF" })
             putExtra(BmrfService.EXTRA_PASSWORD, passwordInput.text.toString())
@@ -383,14 +434,14 @@ class MainActivity : AppCompatActivity() {
         val destination = if (call.callType.equals("Group", ignoreCase = true)) {
             "TG ${call.destId}"
         } else {
-            "ID ${call.destId}"
+            "ID ${CallsignDb.display(call.destId)}"
         }
         callTitleText.text = "$destination \u00B7 ${call.callType.uppercase(Locale.US)}"
 
         val totalSeconds = call.durationMs / 1000
         val duration = String.format(Locale.US, "%02d:%02d", totalSeconds / 60, totalSeconds % 60)
         callDetailText.text = buildString {
-            append("Source ID    ").append(call.sourceId).append('\n')
+            append("Source ID    ").append(CallsignDb.display(call.sourceId)).append('\n')
             append("Destination  ").append(destination).append('\n')
             append("Timeslot     ").append(call.timeslot ?: "-").append('\n')
             call.colorCode?.let { append("Color Code   ").append(it).append('\n') }

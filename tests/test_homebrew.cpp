@@ -48,8 +48,8 @@ BMRF_TEST(sha256_known_vector)
 
 BMRF_TEST(homebrew_parses_dmrd_voice)
 {
-    // go-brandmeister options: slot2 (bit0) + voice + N=3 (high nibble)
-    const std::vector<uint8_t> bytes = makeDmrData(0x31, 0x123456, 0x00005B, {});
+    // MMDVMHost options: slot2 (0x80) + voice + N=3 (low nibble) => 0x83.
+    const std::vector<uint8_t> bytes = makeDmrData(0x83, 0x123456, 0x00005B, {});
     const Packet packet = HomebrewParser::parse(bytes.data(), bytes.size());
 
     BMRF_CHECK(packet.type == PacketType::DmrData);
@@ -88,10 +88,9 @@ BMRF_TEST(homebrew_parses_voice_header_lc)
     payload[7] = 0x34;
     payload[8] = 0x56; // source 0x123456
 
-    // go-brandmeister options: slot2 (bit0) + data frame type (0x08) + data type
-    // VoiceHeader=1 (high nibble) => 0x19.
+    // MMDVMHost options: slot2 (0x80) + dataSync (0x20) + VoiceHeader(1) => 0xA1.
     const std::vector<uint8_t> bytes =
-        makeDmrData(0x19, 0x000001, 0x00005B, payload);
+        makeDmrData(0xA1, 0x000001, 0x00005B, payload);
     const Packet packet = HomebrewParser::parse(bytes.data(), bytes.size());
     const DMRFrame frame = HomebrewParser::toFrame(*packet.dmr_data, 0);
 
@@ -107,8 +106,8 @@ BMRF_TEST(homebrew_parses_voice_header_lc)
 
 BMRF_TEST(homebrew_private_call_flag)
 {
-    // go-brandmeister options: private (bit1) + voice + N=0.
-    const std::vector<uint8_t> bytes = makeDmrData(0x02, 0x111111, 0x222222, {});
+    // MMDVMHost options: private (0x40) + voice TS1 + N=1 => 0x41.
+    const std::vector<uint8_t> bytes = makeDmrData(0x41, 0x111111, 0x222222, {});
     const Packet packet = HomebrewParser::parse(bytes.data(), bytes.size());
     const DMRFrame frame = HomebrewParser::toFrame(*packet.dmr_data, 0);
 
@@ -157,17 +156,32 @@ BMRF_TEST(homebrew_control_packets)
 BMRF_TEST(homebrew_encoder_lengths)
 {
     BMRF_CHECK_EQ(HomebrewEncoder::hexId(0x123456), std::string("00123456"));
-    BMRF_CHECK_EQ(HomebrewEncoder::buildLogin(0x123456).size(), size_t(12));
-    BMRF_CHECK_EQ(HomebrewEncoder::buildPing(0x123456).size(), size_t(15));
+
+    // Native dialect (default): raw 4-byte IDs, RPTACK/RPTPING/MSTPONG.
+    BMRF_CHECK_EQ(HomebrewEncoder::buildLogin(0x123456).size(), size_t(8));
+    BMRF_CHECK_EQ(HomebrewEncoder::buildPing(0x123456).size(), size_t(11));
 
     const std::array<uint8_t, 8> nonce{};
-    BMRF_CHECK_EQ(HomebrewEncoder::buildKey(0x123456, nonce, "secret").size(), size_t(76));
+    BMRF_CHECK_EQ(HomebrewEncoder::buildKey(0x123456, nonce.data(), 4, "secret").size(),
+                  size_t(40));
 
     RepeaterConfig config;
     config.callsign = "BMRF";
     config.id = 0x123456;
     config.color_code = 1;
     BMRF_CHECK_EQ(HomebrewEncoder::buildConfig(config).size(), size_t(302));
+
+    // ASCII dialect.
+    BMRF_CHECK_EQ(HomebrewEncoder::buildLogin(0x123456, HomebrewDialect::Ascii).size(),
+                  size_t(12));
+    BMRF_CHECK_EQ(HomebrewEncoder::buildPing(0x123456, HomebrewDialect::Ascii).size(),
+                  size_t(15));
+    BMRF_CHECK_EQ(
+        HomebrewEncoder::buildKey(0x123456, nonce.data(), 8, "secret", HomebrewDialect::Ascii)
+            .size(),
+        size_t(76));
+    BMRF_CHECK_EQ(
+        HomebrewEncoder::buildConfig(config, HomebrewDialect::Ascii).size(), size_t(306));
 
     BMRF_CHECK_EQ(makeDmrData(0x80, 1, 2, {}).size(), size_t(55));
 }

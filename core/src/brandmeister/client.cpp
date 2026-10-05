@@ -18,6 +18,9 @@ namespace {
 
 constexpr const char* kTag = "BM";
 constexpr uint64_t kReconnectDelayMs = 3000;
+// Delay between the old call's Terminator and the new call's Voice LC Header
+// when the radio switches talkgroup mid-stream (see sendFrame).
+constexpr uint64_t kSwitchHoldMs = 200;
 
 std::string hexBytes(const uint8_t* data, size_t len)
 {
@@ -106,7 +109,7 @@ void HomebrewClient::stop()
     // Tell the master we are leaving so it drops the session immediately
     // instead of waiting for its keepalive timeout (MMDVMHost sends RPTCL too).
     if (m_transport && m_transport->isOpen())
-        writeRaw(HomebrewEncoder::buildClose(m_config.repeater_id));
+        writeRaw(HomebrewEncoder::buildClose(m_config.repeater_id, m_dialect));
     if (m_transport)
         m_transport->close();
     m_auth = AuthState::None;
@@ -116,7 +119,7 @@ void HomebrewClient::stop()
 
 void HomebrewClient::sendLogin()
 {
-    writeRaw(HomebrewEncoder::buildLogin(m_config.repeater_id));
+    writeRaw(HomebrewEncoder::buildLogin(m_config.repeater_id, m_dialect));
     m_auth = AuthState::SentLogin;
     transitionTo(NetworkState::Connecting);
     logInfo(kTag, "sent RPTL repeater=" + std::to_string(m_config.repeater_id));
@@ -124,7 +127,9 @@ void HomebrewClient::sendLogin()
 
 void HomebrewClient::sendKey()
 {
-    writeRaw(HomebrewEncoder::buildKey(m_config.repeater_id, m_nonce, m_config.password));
+    const size_t saltLen = (m_dialect == HomebrewDialect::Ascii) ? 8U : 4U;
+    writeRaw(HomebrewEncoder::buildKey(m_config.repeater_id, m_nonce.data(), saltLen,
+                                       m_config.password, m_dialect));
     m_auth = AuthState::SentKey;
     logDebug(kTag, "sent RPTK (password)");
 }
@@ -134,13 +139,13 @@ void HomebrewClient::sendConfig()
     RepeaterConfig config = m_config.repeater;
     if (config.id == 0)
         config.id = m_config.repeater_id;
-    writeRaw(HomebrewEncoder::buildConfig(config));
+    writeRaw(HomebrewEncoder::buildConfig(config, m_dialect));
     logDebug(kTag, "sent RPTC (configuration)");
 }
 
 void HomebrewClient::sendPing(uint64_t now_ms)
 {
-    writeRaw(HomebrewEncoder::buildPing(m_config.repeater_id));
+    writeRaw(HomebrewEncoder::buildPing(m_config.repeater_id, m_dialect));
     m_last_ping_ms = now_ms;
     m_ping_sent_ms = now_ms;
     logTrace(kTag, "sent MSTPING");
@@ -220,43 +225,72 @@ bool HomebrewClient::sendFrame(const DMRFrame& frame)
 
     const int slotIndex = (frame.timeslot == 2) ? 1 : 0;
 
-    // Wait until the decoded Link Control is stable before starting the BM call,
-    // so the Voice LC Header is built from a clean LC (drops the first few frames
-    // if the RF decode is noisy - acceptable).
-    if (!m_slotActive[slotIndex]) {
-        uint8_t& pc = m_pendCount[slotIndex];
-        if (frame.source_id == m_pendSrc[slotIndex] &&
-            frame.destination_id == m_pendDst[slotIndex] &&
-            frame.flco == m_pendFlco[slotIndex]) {
-            if (pc < 250)
-                ++pc;
-        } else {
-            m_pendSrc[slotIndex] = frame.source_id;
-            m_pendDst[slotIndex] = frame.destination_id;
-            m_pendFlco[slotIndex] = frame.flco;
-            pc = 1;
-            m_txStreamId[slotIndex] = 0; // LC changed -> new call
-        }
-        if (pc < 10)
-            return false; // wait for a stable LC before starting the BM call
+    // Track the pending Link Control (source/destination/FLCO) and count how many
+    // consecutive frames carry it, so a noisy LC does not start/restart a call.
+    uint8_t& pc = m_pendCount[slotIndex];
+    if (frame.source_id == m_pendSrc[slotIndex] &&
+        frame.destination_id == m_pendDst[slotIndex] &&
+        frame.flco == m_pendFlco[slotIndex]) {
+        if (pc < 250)
+            ++pc;
+    } else {
+        m_pendSrc[slotIndex] = frame.source_id;
+        m_pendDst[slotIndex] = frame.destination_id;
+        m_pendFlco[slotIndex] = frame.flco;
+        pc = 1;
     }
 
+    // A call is in progress but the Link Control changed (the radio switched
+    // talkgroup/caller). Do not append the new transmission to the old call:
+    // drop the first frames until the new LC is confirmed, then terminate the old
+    // call so BrandMeister stops routing to the old target; the code below emits
+    // a fresh Voice LC Header for the new one. Without this the first post-switch
+    // transmission kept the old target.
+    if (m_slotActive[slotIndex] &&
+        (frame.source_id != m_callSrc[slotIndex] ||
+         frame.destination_id != m_callDst[slotIndex] ||
+         frame.flco != m_callFlco[slotIndex])) {
+        if (pc < 3)
+            return false; // LC settling; don't leak into the old call
+        sendTerminator(slotIndex);
+        m_slotActive[slotIndex] = false;
+        m_txStreamId[slotIndex] = 0;
+        // BrandMeister merges a Voice LC Header that arrives in the same instant
+        // as the Terminator into the old talkgroup's session. Hold the new call
+        // back for a short beat so the master closes the old one first.
+        m_switchHoldUntilMs[slotIndex] = nowMs() + kSwitchHoldMs;
+        return false;
+    }
+
+    if (m_switchHoldUntilMs[slotIndex] != 0 && nowMs() < m_switchHoldUntilMs[slotIndex])
+        return false; // let the master process the terminator before the header
+
+    if (!m_slotActive[slotIndex] && pc < 3)
+        return false; // brief LC settle before starting the BM call
+
     bool newCall = false;
-    if (frame.data_type == DataType::VoiceHeader || m_txStreamId[slotIndex] == 0) {
-        // New call on this timeslot: pick a fresh random stream id (LCG).
+    if (!m_slotActive[slotIndex] || m_txStreamId[slotIndex] == 0 ||
+        frame.data_type == DataType::VoiceHeader) {
+        // New call on this timeslot: pick a fresh random stream id (LCG) and
+        // restart the DMRD/voice numbering, exactly like DroidStar (header seq 0,
+        // first voice frame seq 1, ...), and remember the LC this call belongs to.
         newCall = true;
         m_nextStreamId = m_nextStreamId * 1664525u + 1013904223u;
         m_txStreamId[slotIndex] = m_nextStreamId | 1u;
         m_slotFrames[slotIndex] = 0;
-        if (frame.data_type == DataType::VoiceHeader)
-            m_txSequence[slotIndex] = 0;
+        m_txSequence[slotIndex] = 0;
+        m_callSrc[slotIndex] = frame.source_id;
+        m_callDst[slotIndex] = frame.destination_id;
+        m_callFlco[slotIndex] = frame.flco;
     }
 
     // BrandMeister expects a Voice LC Header (data-sync burst) once at the start
     // of a call so it can classify/route it (as MMDVMHost/DroidStar do). The RF
     // path only produces voice frames, so synthesise the header once per call.
-    if (newCall && frame.data_type != DataType::VoiceHeader && frame.has_voice)
+    if (newCall && frame.data_type != DataType::VoiceHeader && frame.has_voice) {
         sendLcHeader(frame, slotIndex);
+        m_txSequence[slotIndex] = 1; // header carried seq 0
+    }
     if (m_slotFrames[slotIndex] < 255)
         ++m_slotFrames[slotIndex];
 
@@ -477,6 +511,9 @@ void HomebrewClient::clock(uint64_t now_ms)
                 m_pendSrc[s] = 0;
                 m_pendDst[s] = 0;
                 m_pendFlco[s] = 0;
+                m_callSrc[s] = 0;
+                m_callDst[s] = 0;
+                m_callFlco[s] = 0;
             }
         }
     }

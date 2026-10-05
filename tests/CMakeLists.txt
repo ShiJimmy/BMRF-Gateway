@@ -5,6 +5,7 @@ add_executable(bmrf_tests
     test_audio.cpp
     test_rf.cpp
     test_uplink.cpp
+    test_client_uplink.cpp
     test_phy.cpp
     test_capture.cpp
     test_lc_encode.cpp

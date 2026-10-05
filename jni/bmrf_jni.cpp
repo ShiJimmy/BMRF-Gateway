@@ -54,7 +54,7 @@ struct CoreContext {
     std::mutex mutex;
 
     std::string masterHost = "brandmeister.network";
-    uint16_t masterPort = 62030;
+    uint16_t masterPort = 62031;
     uint32_t repeaterId = 0;
     bool started = false;
     bool bmAudio = false;
@@ -305,16 +305,20 @@ JNIEXPORT void JNICALL Java_com_bmrf_gateway_BmrfCore_nativeConfigure(
     config.repeater.callsign = toString(env, callsign);
     if (config.repeater.callsign.empty())
         config.repeater.callsign = "BMRF";
-    // Advertise an MMDVM-hotspot software/package identity so BrandMeister treats
-    // the device as a hotspot (which is allowed to transmit), like DroidStar.
-    config.repeater.software_id = "MMDVM_HS";
+    // Advertise the exact software/package identity DroidStar uses: the native
+    // MMDVM RPTC is rejected with MSTNAK unless the software field looks like a
+    // dated MMDVM build ("YYYYMMDD_..."), and BrandMeister only authorises
+    // transmission for recognised hotspot software.
+    config.repeater.software_id = "20181107_Pi-Star";
     config.repeater.package_id = "MMDVM_MMDVM_HS_Hat";
+    config.repeater.url = "www.qrz.com";
+    config.repeater.tx_power = 1;
 
     // BrandMeister's master rejects an RPTC configuration whose RX/TX frequency
     // is zero (it answers MSTNAK). Advertise the SDR centre frequency when the
     // radio is open, otherwise a sane non-zero default, plus a valid colour code.
     {
-        uint32_t rfFreq = 430000000U;
+        uint32_t rfFreq = 438800000U;
         const bmrf::rf::RtlSdrStatus sdr = bmrf::rf::rtlSdrStatus();
         if (sdr.center_hz > 0)
             rfFreq = sdr.center_hz;

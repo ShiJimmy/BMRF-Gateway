@@ -16,7 +16,9 @@ namespace bmrf::rf {
 //   frame/LC parsing).
 //
 // Verified against the reference: on a real Tier-2 transmission it decodes the
-// source (461xxxx) and target (16777215) IDs and clear voice.
+// source/target IDs and clear voice. When the embedded LC fails to decode the
+// addressing comes out as all-ones (0xFFFFFF); callers must treat that as
+// invalid (see RfReceiver).
 class DsdccDmrDemod {
 public:
     explicit DsdccDmrDemod(uint32_t sample_rate = 240000, double freq_offset_hz = 40000.0);
@@ -56,6 +58,10 @@ public:
     // True once the embedded-signalling Link Control for the current slot has
     // passed its FEC (the addressing/FLCO can be trusted).
     bool addressesValid() const;
+    // Monotonic count of decoded (FEC-clean) embedded Link Controls. Advances
+    // about once per DMR superframe; used to detect when the addressing has been
+    // refreshed after a new transmission starts.
+    uint64_t lcDecodeVersion() const;
     // Voice superframe position [0..5] for the Homebrew voice frame index.
     int voiceFrameIndex() const;
     // Number of AMBE voice frames DSDcc produced during the last process() call.

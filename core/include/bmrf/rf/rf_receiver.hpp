@@ -99,6 +99,14 @@ private:
     std::atomic<float> m_levelDb{0.0f};
     std::atomic<float> m_snrDb{0.0f};
     uint64_t m_lastRfActivityMs = 0;
+
+    // New-transmission handling: the embedded LC lags the over-the-air Voice LC
+    // Header by up to a superframe, so after a gap we wait until a fresh LC has
+    // been decoded before forwarding (otherwise a talkgroup switch briefly starts
+    // a call on the previous talkgroup).
+    uint64_t m_lastPayloadNs = 0;
+    uint64_t m_lcAtGap = 0;
+    bool m_waitFreshLc = true;
 };
 
 } // namespace bmrf::rf

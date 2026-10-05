@@ -95,7 +95,7 @@ object SnapshotParser {
         state = json.optString("state", "DISCONNECTED"),
         master = json.optString("master", ""),
         bmPeer = json.optString("bmPeer", ""),
-        port = json.optInt("port", 62030),
+        port = json.optInt("port", 62031),
         repeaterId = json.optLong("repeaterId", 0L),
         latencyMs = json.optLong("latencyMs", 0L),
         loggedIn = json.optBoolean("loggedIn", false),

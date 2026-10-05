@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <string>
 
 #include "dsd_decoder.h"
@@ -69,8 +70,15 @@ struct DsdccDmrDemod::Impl {
     // payload (27 AMBE bytes + embedded signalling) without re-encoding.
     std::array<uint8_t, 27> ambe_accum[2] = {};
     int ambe_count[2] = {0, 0};
-    std::array<uint8_t, 33> payload[2] = {};
-    bool payload_ready[2] = {false, false};
+    // Completed bursts are queued: a single SDR read (e.g. 32768 samples at
+    // 240 kS/s = ~136 ms) can contain several DMR bursts, so a one-deep buffer
+    // would silently drop all but the last. Losing 3 of every 4 voice frames is
+    // what made BrandMeister registration unreliable.
+    struct QueuedPayload {
+        std::array<uint8_t, 33> data{};
+        int seq = 0;
+    };
+    std::deque<QueuedPayload> payloadQueue[2];
     int payload_seq[2] = {0, 0}; // Homebrew voice number N, [0..5] per burst
 };
 
@@ -235,9 +243,12 @@ void DsdccDmrDemod::process(const uint8_t* iq, size_t samples, std::vector<int16
                         (slot == 0) ? d.decoder.getMbeDVFrame1() : d.decoder.getMbeDVFrame2();
                     std::memcpy(d.ambe_accum[slot].data() + 9 * d.ambe_count[slot], f, 9);
                     if (++d.ambe_count[slot] == 3) {
-                        buildHomebrewPayload(d.ambe_accum[slot].data(), d.payload[slot].data());
-                        d.payload_ready[slot] = true;
-                        d.payload_seq[slot] = (d.payload_seq[slot] + 1) % 6;
+                        Impl::QueuedPayload q;
+                        buildHomebrewPayload(d.ambe_accum[slot].data(), q.data.data());
+                        q.seq = (d.payload_seq[slot] + 1) % 6;
+                        d.payload_seq[slot] = q.seq;
+                        if (d.payloadQueue[slot].size() < 64)
+                            d.payloadQueue[slot].push_back(q);
                         d.ambe_count[slot] = 0;
                     }
                     if (slot == 0)
@@ -404,6 +415,15 @@ bool DsdccDmrDemod::addressesValid() const
     return m_impl->decoder.getDMRDecoder().getSlotAddressesValid(s);
 }
 
+uint64_t DsdccDmrDemod::lcDecodeVersion() const
+{
+    if (m_impl == nullptr)
+        return 0;
+    auto& dmr = m_impl->decoder.getDMRDecoder();
+    return static_cast<uint64_t>(dmr.getSlotLcDecodes(0)) +
+           static_cast<uint64_t>(dmr.getSlotLcDecodes(1));
+}
+
 int DsdccDmrDemod::colorCode() const
 {
     return m_impl ? static_cast<int>(m_impl->decoder.getDMRDecoder().getColorCode()) : -1;
@@ -429,12 +449,13 @@ bool DsdccDmrDemod::takePayload(uint8_t out[33], int* sequence)
         return false;
     Impl& d = *m_impl;
     for (int slot = 0; slot < 2; ++slot) {
-        if (!d.payload_ready[slot])
+        if (d.payloadQueue[slot].empty())
             continue;
-        std::memcpy(out, d.payload[slot].data(), 33);
+        const Impl::QueuedPayload& q = d.payloadQueue[slot].front();
+        std::memcpy(out, q.data.data(), 33);
         if (sequence != nullptr)
-            *sequence = d.payload_seq[slot];
-        d.payload_ready[slot] = false;
+            *sequence = q.seq;
+        d.payloadQueue[slot].pop_front();
         return true;
     }
     return false;

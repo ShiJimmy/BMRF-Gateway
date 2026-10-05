@@ -374,6 +374,30 @@
                     android:layout_marginTop="4dp"
                     android:text="@string/action_apply_talkgroups" />
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/section_contacts"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/importContactsButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/action_import_contacts" />
+
+                <TextView
+                    android:id="@+id/contactStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:fontFamily="monospace"
+                    android:text="@string/contacts_none"
+                    android:textSize="13sp" />
+
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/audioSwitch"
                     android:layout_width="match_parent"

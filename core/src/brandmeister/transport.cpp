@@ -116,17 +116,12 @@ bool UdpTransport::open(const std::string& host, uint16_t port, std::string& err
         return false;
     }
 
-    if (::connect(handle, result->ai_addr, static_cast<int>(result->ai_addrlen)) != 0) {
-        freeaddrinfo(result);
-#if defined(_WIN32)
-        closesocket(handle);
-#else
-        ::close(handle);
-#endif
-        error = "connect() failed";
-        logError(kTag, error);
-        return false;
-    }
+    // Leave the socket unconnected (sendto/recvfrom). The native BrandMeister
+    // protocol answers from a different source port than it receives on, so a
+    // connect()ed socket would drop those replies.
+    m_peerAddr.assign(reinterpret_cast<const uint8_t*>(result->ai_addr),
+                      reinterpret_cast<const uint8_t*>(result->ai_addr) + result->ai_addrlen);
+    m_peerAddrLen = static_cast<int>(result->ai_addrlen);
     freeaddrinfo(result);
 
 #if defined(_WIN32)
@@ -153,6 +148,8 @@ void UdpTransport::close()
     ::close(handle);
 #endif
     m_socket = static_cast<uintptr_t>(-1);
+    m_peerAddr.clear();
+    m_peerAddrLen = 0;
 }
 
 bool UdpTransport::isOpen() const
@@ -162,10 +159,11 @@ bool UdpTransport::isOpen() const
 
 bool UdpTransport::send(const uint8_t* data, size_t len)
 {
-    if (!isOpen())
+    if (!isOpen() || m_peerAddr.empty())
         return false;
-    const int sent = ::send(toSocket(m_socket), reinterpret_cast<const char*>(data),
-                            static_cast<int>(len), 0);
+    const int sent = ::sendto(toSocket(m_socket), reinterpret_cast<const char*>(data),
+                              static_cast<int>(len), 0,
+                              reinterpret_cast<const sockaddr*>(m_peerAddr.data()), m_peerAddrLen);
     if (sent != static_cast<int>(len)) {
         logWarn(kTag, "send failed, error=" + std::to_string(socketError()));
         return false;
@@ -177,8 +175,8 @@ int UdpTransport::recv(uint8_t* data, size_t maxLen)
 {
     if (!isOpen())
         return -1;
-    const int received = ::recv(toSocket(m_socket), reinterpret_cast<char*>(data),
-                                static_cast<int>(maxLen), 0);
+    const int received = ::recvfrom(toSocket(m_socket), reinterpret_cast<char*>(data),
+                                    static_cast<int>(maxLen), 0, nullptr, nullptr);
     if (received < 0) {
         const int err = socketError();
 #if defined(_WIN32)

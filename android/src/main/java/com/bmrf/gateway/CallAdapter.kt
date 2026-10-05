@@ -34,9 +34,9 @@ class CallAdapter : RecyclerView.Adapter<CallAdapter.ViewHolder>() {
         val destination = if (call.callType.equals("Group", ignoreCase = true)) {
             "TG${call.destId}"
         } else {
-            "ID${call.destId}"
+            "ID ${CallsignDb.display(call.destId)}"
         }
-        holder.title.text = "${call.callType}  ${call.sourceId} \u2192 $destination"
+        holder.title.text = "${call.callType}  ${CallsignDb.display(call.sourceId)} \u2192 $destination"
         holder.subtitle.text =
             "${clock.format(Date(entry.endedAtMs))}  TS${call.timeslot ?: "-"}  " +
                 "${formatDuration(call.durationMs)}  frames=${call.frameCount}  " +

@@ -32,8 +32,9 @@ BMRF_TEST(uplink_frame_to_dmrd_round_trip)
     BMRF_CHECK_EQ(data.source_id, 0x123456u);
     BMRF_CHECK_EQ(data.destination_id, 91u);
     BMRF_CHECK_EQ(data.sequence, 7);
-    BMRF_CHECK_EQ(data.ber, 5);
-    BMRF_CHECK_EQ(data.rssi, 100);
+    // Uplink zeroes BER/RSSI (like DroidStar); RF metrics are local only.
+    BMRF_CHECK_EQ(data.ber, 0);
+    BMRF_CHECK_EQ(data.rssi, 0);
     for (size_t i = 0; i < 33; ++i)
         BMRF_CHECK_EQ(data.data[i], static_cast<uint8_t>(i));
 

@@ -29,18 +29,33 @@ struct RepeaterConfig {
 
 // Homebrew TX / encoder. Mirrors BrandMeister/go-brandmeister (homebrew/client.go)
 // and MMDVMHost (DMRNetwork::write).
+// Wire dialect of the Homebrew protocol. The native MMDVM/MMDVMHost dialect
+// (raw 4-byte IDs, "RPTACK"/"RPTPING"/"MSTPONG") is what MMDVMHost and DroidStar
+// use and is the only one BrandMeister authorises for transmission; the ASCII
+// dialect (8 hex chars, "MSTACK"/"MSTPING"/"RPTPONG") is the go-brandmeister
+// variant.
+enum class HomebrewDialect : uint8_t {
+    Native,
+    Ascii,
+};
+
 class HomebrewEncoder {
 public:
-    static std::vector<uint8_t> buildLogin(uint32_t repeater_id);
+    static std::vector<uint8_t> buildLogin(uint32_t repeater_id,
+                                           HomebrewDialect dialect = HomebrewDialect::Native);
     static std::vector<uint8_t> buildKey(uint32_t repeater_id,
-                                         const std::array<uint8_t, 8>& nonce,
-                                         const std::string& password);
-    static std::vector<uint8_t> buildConfig(const RepeaterConfig& config);
+                                         const uint8_t* salt, size_t saltLen,
+                                         const std::string& password,
+                                         HomebrewDialect dialect = HomebrewDialect::Native);
+    static std::vector<uint8_t> buildConfig(const RepeaterConfig& config,
+                                            HomebrewDialect dialect = HomebrewDialect::Native);
     static std::vector<uint8_t> buildDmrData(const DMRData& data);
-    static std::vector<uint8_t> buildPing(uint32_t repeater_id);
-    static std::vector<uint8_t> buildClose(uint32_t repeater_id);
+    static std::vector<uint8_t> buildPing(uint32_t repeater_id,
+                                          HomebrewDialect dialect = HomebrewDialect::Native);
+    static std::vector<uint8_t> buildClose(uint32_t repeater_id,
+                                           HomebrewDialect dialect = HomebrewDialect::Native);
 
-    // "%08x" of a 24/32-bit repeater id, as used by the Homebrew protocol.
+    // "%08x" of a 24/32-bit repeater id, as used by the ASCII Homebrew dialect.
     static std::string hexId(uint32_t repeater_id);
 };
 

@@ -68,7 +68,7 @@ class BmrfService : Service() {
 
         if (intent?.action == ACTION_OPEN_SDR) {
             if (!configured) {
-                core.configure("4602.master.brandmeister.network", 62030, 0, "BMRF", "")
+                core.configure("4602.master.brandmeister.network", 62031, 0, "BMRF", "")
                 configured = true
             }
             sdrConfig = SdrConfig(
@@ -88,7 +88,7 @@ class BmrfService : Service() {
         }
 
         val host = intent?.getStringExtra(EXTRA_HOST) ?: "4602.master.brandmeister.network"
-        val port = intent?.getIntExtra(EXTRA_PORT, 62030) ?: 62030
+        val port = intent?.getIntExtra(EXTRA_PORT, 62031) ?: 62031
         val repeaterId = intent?.getIntExtra(EXTRA_REPEATER_ID, 0) ?: 0
         val callsign = intent?.getStringExtra(EXTRA_CALLSIGN) ?: "BMRF"
         val password = intent?.getStringExtra(EXTRA_PASSWORD) ?: ""

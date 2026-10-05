@@ -143,8 +143,10 @@ DSDDMR::DSDDMR(DSDDecoder *dsdDecoder) :
         m_dataType(DSDDMRDataUnknown),
         m_voice1EmbSig_dibitsIndex(0),
         m_voice1EmbSig_OK(false),
+        m_slot1LcDecodes(0),
         m_voice2EmbSig_dibitsIndex(0),
         m_voice2EmbSig_OK(false),
+        m_slot2LcDecodes(0),
         m_voice1FrameCount(DMR_VOX_SUPERFRAME_LEN),
         m_voice2FrameCount(DMR_VOX_SUPERFRAME_LEN)
 {
@@ -813,6 +815,7 @@ void DSDDMR::processVoiceDibit(unsigned char dibit)
                 {
                     if (processVoiceEmbeddedSignalling(m_voice1EmbSig_dibitsIndex, m_voice1EmbSigRawBits, m_voice1EmbSig_OK, m_slot1Addresses))
                     {
+                        m_slot1LcDecodes++;
                         textVoiceEmbeddedSignalling(m_slot1Addresses, m_dsdDecoder->m_state.slot0light);
 //                        std::cerr << "DSDDMR::processVoiceDibit: "
 //                                << " source: " << m_slot1Addresses.m_source
@@ -827,6 +830,7 @@ void DSDDMR::processVoiceDibit(unsigned char dibit)
                 {
                     if (processVoiceEmbeddedSignalling(m_voice2EmbSig_dibitsIndex, m_voice2EmbSigRawBits, m_voice2EmbSig_OK, m_slot2Addresses))
                     {
+                        m_slot2LcDecodes++;
                         textVoiceEmbeddedSignalling(m_slot2Addresses, m_dsdDecoder->m_state.slot1light);
 //                        std::cerr << "DSDDMR::processVoiceDibit: "
 //                                << " source: " << m_slot2Addresses.m_source

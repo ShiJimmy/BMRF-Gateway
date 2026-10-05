@@ -60,9 +60,19 @@ Packet HomebrewParser::parse(const uint8_t* data, size_t len)
 
     if (startsWith(data, len, sig::kMasterAck, 6)) {
         packet.type = PacketType::MasterAck;
-        // "MSTACK" + 8 byte id echo + optional 8 byte nonce.
+        // ASCII dialect: "MSTACK" + 8 byte id echo + optional 8 byte nonce.
         if (len >= 6 + 8 + 8) {
             std::memcpy(packet.nonce.data(), data + 6 + 8, 8);
+            packet.has_nonce = true;
+        }
+        return packet;
+    }
+
+    if (startsWith(data, len, sig::kMasterAckNative, 6)) {
+        packet.type = PacketType::MasterAck;
+        // Native dialect: "RPTACK" + 4 byte salt (login ack) or 4 byte id echo.
+        if (len >= 6 + 4) {
+            std::memcpy(packet.nonce.data(), data + 6, 4);
             packet.has_nonce = true;
         }
         return packet;
@@ -84,6 +94,11 @@ Packet HomebrewParser::parse(const uint8_t* data, size_t len)
     }
 
     if (startsWith(data, len, sig::kRepeaterPong, 7)) {
+        packet.type = PacketType::RepeaterPong;
+        return packet;
+    }
+
+    if (startsWith(data, len, sig::kMasterPongNative, 7)) {
         packet.type = PacketType::RepeaterPong;
         return packet;
     }

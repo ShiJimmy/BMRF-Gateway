@@ -144,6 +144,14 @@ public:
     {
         return slotIndex == 0 ? m_voice1FrameCount : m_voice2FrameCount;
     }
+    // Number of successfully decoded (FEC-clean) embedded Link Controls. It
+    // advances once per superframe; BMRF uses it to know when the addressing has
+    // been refreshed after a new transmission starts (the embedded LC lags the
+    // over-the-air Voice LC Header by up to a superframe).
+    unsigned int getSlotLcDecodes(unsigned int slotIndex) const
+    {
+        return slotIndex == 0 ? m_slot1LcDecodes : m_slot2LcDecodes;
+    }
 
 private:
     struct DMRAddresses
@@ -198,10 +206,12 @@ private:
     unsigned char m_voice1EmbSigRawBits[16*8];
     int           m_voice1EmbSig_dibitsIndex;
     bool          m_voice1EmbSig_OK;
+    unsigned int  m_slot1LcDecodes;
     DMRAddresses  m_slot1Addresses;
     unsigned char m_voice2EmbSigRawBits[16*8];
     int           m_voice2EmbSig_dibitsIndex;
     bool          m_voice2EmbSig_OK;
+    unsigned int  m_slot2LcDecodes;
     DMRAddresses  m_slot2Addresses;
     unsigned char m_syncDibits[24];
     unsigned int m_voice1FrameCount; //!< current frame count in voice superframe: [0..5] else no superframe on going

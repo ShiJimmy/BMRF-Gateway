@@ -78,6 +78,12 @@ public:
     // Inject a received datagram. Used by tests and packet replay (design doc §21).
     void inject(const uint8_t* data, size_t len, uint64_t now_ms);
 
+    // Send a raw datagram on the session socket (diagnostics / packet replay).
+    bool sendRawPacket(const uint8_t* data, size_t len)
+    {
+        return writeRaw(std::vector<uint8_t>(data, data + len));
+    }
+
 private:
     enum class AuthState {
         None,
@@ -117,6 +123,10 @@ private:
 
     std::array<uint8_t, 8> m_nonce{};
     bool m_hasNonce = false;
+    // Wire dialect: Native (MMDVMHost/DroidStar) is the one BrandMeister
+    // authorises for transmission. The ASCII variant remains available in
+    // HomebrewEncoder for reference/tests.
+    HomebrewDialect m_dialect = HomebrewDialect::Native;
 
     uint64_t m_last_rx_ms = 0;
     uint64_t m_last_ping_ms = 0;
@@ -132,6 +142,14 @@ private:
     uint64_t m_slotLastFrameMs[2] = {0, 0};
     DMRFrame m_slotLastFrame[2];
     uint8_t m_slotFrames[2] = {0, 0}; // voice frames seen in the current call
+    // Link Control of the call currently in progress on each slot (used to detect
+    // a talkgroup/caller change mid-stream and start a new BM call).
+    uint32_t m_callSrc[2] = {0, 0};
+    uint32_t m_callDst[2] = {0, 0};
+    uint8_t m_callFlco[2] = {0, 0};
+    // After a mid-call talkgroup switch the new Voice LC Header is held until
+    // this time so BrandMeister closes the old session first.
+    uint64_t m_switchHoldUntilMs[2] = {0, 0};
     // Link-control stability vote: a new BM call only starts once the decoded
     // (source, destination, FLCO) has been stable for several consecutive frames,
     // so the synthesised Voice LC Header uses a clean LC.

@@ -27,8 +27,10 @@ BM (Homebrew)─┘                            ├─► BM TX
 - 线程安全事件总线 `EventBus`
 - 呼叫状态机 `CallManager`（呼叫识别、开始/结束、帧计数、丢帧统计、超时、会话统计）
 - BrandMeister Homebrew **RX** 解析（`DMRD` 55 字节、`MSTACK/NAK/PING/CL`、`RPTPONG`）
-- BrandMeister Homebrew **编码**（`RPTL` / `RPTK` / `RPTC` / `DMRD` / `MSTPING`），
-  含 `SHA-256(nonce || password)` 登录校验
+- BrandMeister Homebrew **编码**：默认使用 **原生 MMDVM 方言**
+  （`RPTL`+4 字节 ID、`RPTK`+`SHA-256(salt||password)`、`RPTC`、`DMRD`、`RPTPING`，
+  master 端口 **62031**）；go-brandmeister ASCII 方言
+  （8 位十六进制 ID、`MSTACK`、`MSTPING`）保留在 `HomebrewEncoder` 供参考/测试
 - 网络状态机 `HomebrewClient`（DISCONNECTED→CONNECTING→REGISTERED→ACTIVE→RECONNECTING）
 - **下行语音管线**：`DMRFrame` → `JitterBuffer` → `IAmbeDecoder` → `IAudioOutput`，
   独立工作线程，Android 端使用 **AAudio**（8 kHz mono）
@@ -48,11 +50,17 @@ BM (Homebrew)─┘                            ├─► BM TX
 - `rf/burst_source`：`IDmrBurstSource` + 文件回放源（设计文档 §21）
 - `rf/rf_receiver`：独立线程，突发源 → 解码 → CallManager / VoicePipeline / EventBus
 
-尚未实现（后续阶段）：
-- RF 的 CACH 色码（Golay 20,8）与 BPTC/LC 解码（RF 呼叫的 Source/Destination ID）
-- 4FSK 解调 + 符号定时恢复 + 同步捕获
+**RF → BrandMeister 上行（stage RF-2 / MVP-3）**
+- vendored DSDcc DMR 前端：RTL-SDR cu8 IQ → NCO/降采样 48k → FM 鉴频 → DMR 解码
+- 空口嵌入 LC（经 FEC 校验）→ `DMRFrame`；暴露 LC 解码版本，新发射时等地址刷新去抖
+- 上行成帧：Voice LC Header + 嵌入 LC 语音帧 + Terminator（原生方言 / 端口 62031）；
+  通话组中途切换时先发 Terminator、延迟 200ms 再开新呼叫，避免被 BM 并入旧组
 - RTL-SDR（librtlsdr）+ Android USB Host/OTG 采集
-- RF→BM 上行编码、BM→RF 发射
+
+尚未实现（后续阶段）：
+- BM→RF 发射（RF 侧仅接收）
+- 用空口 Voice LC Header（全 LC + BPTC/RS）替代滞后的嵌入 LC，消除新发射头 ~0.3s 丢帧
+- RF 色码显示（当前 DSDcc 报 0；不影响 BM 路由）
 
 ## RF 接收链接入方式
 
@@ -76,8 +84,10 @@ BMRF-Gateway/
 │   └── bmrf_jni.cpp
 ├── android/                   # Android 应用（Gradle 模块 :app，目录名为 android）
 │   └── src/main/{java,res,cpp,AndroidManifest.xml}
-├── tools/                     # 命令行工具
-│   └── frame_dump.cpp
+├── tools/                     # 命令行工具（frame_dump、RF 离线解码、BM 上行探针等）
+│   ├── frame_dump.cpp
+│   ├── bm_uplink_probe.cpp    # 诊断：IQ 回放 → 真实 HomebrewClient → BM（可抓 Last Heard）
+│   └── rf_*.cpp
 ├── tests/                     # 单元测试（无第三方依赖）
 ├── CMakeLists.txt             # 桌面/CI 构建核心库、测试、工具
 ├── settings.gradle            # Android 构建入口

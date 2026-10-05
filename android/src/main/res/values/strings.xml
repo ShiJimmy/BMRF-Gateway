@@ -18,13 +18,20 @@
     <string name="action_apply_talkgroups">Apply talkgroups</string>
 
     <string name="default_host">4602.master.brandmeister.network</string>
-    <string name="default_port">62030</string>
+    <string name="default_port">62031</string>
     <string name="default_id">4615543</string>
 
     <string name="action_start">Start</string>
     <string name="action_stop">Stop</string>
     <string name="label_audio">Play downlink audio</string>
     <string name="hint_audio_talkgroups">BM talkgroups: show/play only these (comma, blank = all)</string>
+
+    <string name="section_contacts">CALLSIGN LOOKUP</string>
+    <string name="action_import_contacts">Import contacts (CSV/TSV)</string>
+    <string name="contacts_none">No contacts imported</string>
+    <string name="contacts_loaded">Contacts: %1$d IDs</string>
+    <string name="contacts_imported">Imported %1$d IDs</string>
+    <string name="contacts_import_failed">Import failed</string>
 
     <string name="section_current">CURRENT CALL</string>
     <string name="section_network">NETWORK</string>
