@@ -183,7 +183,18 @@ SDK `E:/Android_SDK` + NDK 26.1.10909125。
 - ETSI TS 102 361-1（DMR Air Interface）
 - 设计文档：`../android_rtlsdr_dmr_brandmeister_design.md`
 
-## 许可证
+## License
 
-核心协议实现参考了 GPL-2.0（MMDVMHost）与 BrandMeister 官方仓库，实际分发前
-请自行确认各上游的许可与专利状态（尤其是 AMBE 编解码，见设计文档 §16）。
+This project is licensed under the **GNU General Public License v3.0** — see
+[LICENSE](LICENSE).
+
+It builds on and/or vendors third-party components under their own licenses:
+
+- **MMDVMHost** (GPL-2.0-or-later) — reference for the DMRD / Homebrew protocol.
+- **DSDcc / DSD-FME** (GPL-3.0) — DMR demodulation and decoding (`third_party/dsdcc`).
+- **mbelib** (ISC-style) — AMBE 3600x2450 decoding (`third_party/mbelib`).
+- **liquid-dsp** (MIT) — DSP primitives (`third_party/liquid-dsp`).
+- **librtlsdr** (GPL-2.0) — RTL-SDR support.
+
+> AMBE is patent-encumbered. Evaluate usage and distribution accordingly
+> (see the design document §16).
