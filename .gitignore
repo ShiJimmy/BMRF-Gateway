@@ -5,6 +5,11 @@ build-android/
 local.properties
 android/local.properties
 android/.cxx/
+# Release signing (never commit keys or passwords)
+android/keystore/
+android/keystore.properties
+*.jks
+*.keystore
 *.iml
 .idea/
 .DS_Store
