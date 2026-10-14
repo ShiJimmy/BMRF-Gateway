@@ -74,7 +74,7 @@ BMRF_TEST(call_manager_burst_sequence_no_false_loss)
 {
     CallManager manager;
     for (uint32_t i = 0; i < 60; ++i) {
-        manager.onFrame(makeFrame(DataType::Voice, 4615543, 73, CallType::Group,
+        manager.onFrame(makeFrame(DataType::Voice, 1234567, 73, CallType::Group,
                                   1000000000ULL + i * 60000000ULL, i % 6));
     }
     const CallManagerStats stats = manager.stats();

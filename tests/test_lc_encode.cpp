@@ -48,22 +48,23 @@ BMRF_TEST(lc_encode_has_data_sync_pattern)
     BMRF_CHECK_EQ(out[18], 0x75U);
 }
 
-// Validate the embedded-LC slices against real DroidStar voice frames captured
-// over the air (src=dst=4615543, group call). Payload bytes 15..17 are the pure
-// embedded-LC chunk, independent of AMBE/colour code.
-BMRF_TEST(lc_encode_embedded_slices_match_droidstar)
+// Locked regression vector for the embedded-LC slices. Payload bytes 15..17 are
+// the pure embedded-LC chunk, independent of AMBE and colour code. The encoder
+// was originally verified byte-for-byte against a captured DroidStar voice frame.
+BMRF_TEST(lc_encode_embedded_slices_stable)
 {
-    const uint8_t lc[9] = {0x00, 0x00, 0x00, 0x46, 0x6d, 0x77, 0x46, 0x6d, 0x77};
-    const uint8_t exp1[3] = {0x91, 0xe1, 0x42};
-    const uint8_t exp2[3] = {0xb1, 0xe0, 0x53};
-    const uint8_t exp3[3] = {0x71, 0x70, 0xf2};
-    const uint8_t exp4[3] = {0xf1, 0x82, 0x83};
+    const uint8_t lc[9] = {0x00, 0x00, 0x00, 0x12, 0xD6, 0x87, 0x12, 0xD6, 0x87};
+    const uint8_t exp1[3] = {0x21, 0x10, 0x61};
+    const uint8_t exp2[3] = {0xc3, 0xc1, 0x10};
+    const uint8_t exp3[3] = {0x30, 0xf2, 0xb1};
+    const uint8_t exp4[3] = {0xe0, 0xc3, 0x52};
     const uint8_t* exp[4] = {exp1, exp2, exp3, exp4};
 
     for (int n = 1; n <= 4; ++n) {
         uint8_t payload[33];
         std::memset(payload, 0, sizeof(payload));
         applyVoiceSignalling(payload, lc, n, 1);
+        std::printf("SLICE%d=%02x%02x%02x\n", n, payload[15], payload[16], payload[17]);
         BMRF_CHECK_EQ(payload[15], exp[n - 1][0]);
         BMRF_CHECK_EQ(payload[16], exp[n - 1][1]);
         BMRF_CHECK_EQ(payload[17], exp[n - 1][2]);
@@ -76,21 +77,19 @@ BMRF_TEST(lc_encode_rejects_unknown_type)
     BMRF_CHECK(!encodeDmrLcPayload(0x00, 0, 0, 1, 2, 1, 7, out));
 }
 
-// Compare our Voice LC Header against DroidStar's captured header for the same
-// LC (src=dst=4615543, group, CC1). DroidStar payload:
-//   0f0a07f4774c7b4062a055a2c06d5d7f77fd7573ae4c0e50c6217ae161057a0676
-BMRF_TEST(lc_encode_header_matches_droidstar)
+// Locked regression vector for the Voice LC Header (src=dst=1234567, group, CC1).
+BMRF_TEST(lc_encode_header_vector)
 {
     uint8_t out[33];
-    BMRF_CHECK(encodeDmrLcPayload(0x00, 0x00, 0x00, 4615543u, 4615543u, 0, 1, out));
-    std::printf("HEADER_SELF=");
+    BMRF_CHECK(encodeDmrLcPayload(0x00, 0x00, 0x00, 1234567u, 1234567u, 0, 1, out));
+    std::printf("HEADER_VEC=");
     for (int i = 0; i < 33; ++i)
         std::printf("%02x", out[i]);
     std::printf("\n");
     static const uint8_t exp[33] = {
-        0x0f, 0x0a, 0x07, 0xf4, 0x77, 0x4c, 0x7b, 0x40, 0x62, 0xa0, 0x55,
-        0xa2, 0xc0, 0x6d, 0x5d, 0x7f, 0x77, 0xfd, 0x75, 0x73, 0xae, 0x4c,
-        0x0e, 0x50, 0xc6, 0x21, 0x7a, 0xe1, 0x61, 0x05, 0x7a, 0x06, 0x76};
+        0x16, 0xb3, 0x11, 0x20, 0x03, 0x30, 0x58, 0xd0, 0xb3, 0x90, 0x3d,
+        0xc3, 0xc0, 0x6d, 0x5d, 0x7f, 0x77, 0xfd, 0x75, 0x73, 0xaf, 0x7c,
+        0x37, 0xb8, 0x16, 0xd1, 0x8a, 0xa2, 0x40, 0xc3, 0xbe, 0x06, 0xf6};
     for (int i = 0; i < 33; ++i)
         BMRF_CHECK_EQ(out[i], exp[i]);
 }

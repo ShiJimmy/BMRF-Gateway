@@ -138,7 +138,7 @@ build-mbelib\tests\bmrf_tests.exe
 
 # Android 构建 + 安装
 $env:JAVA_HOME = "C:\Program Files\JetBrains\CLion 2024.3\jbr"
-& "C:\Users\Zhan\.gradle\wrapper\dists\gradle-8.7-bin\*gradle-8.7\bin\gradle.bat" :app:assembleDebug
+& "C:\Users\<user>\.gradle\wrapper\dists\gradle-8.7-bin\*gradle-8.7\bin\gradle.bat" :app:assembleDebug
 E:\Android_SDK\platform-tools\adb.exe install -r android\build\outputs\apk\debug\app-debug.apk
 ```
 
@@ -148,11 +148,11 @@ E:\Android_SDK\platform-tools\adb.exe install -r android\build\outputs\apk\debug
 
 ## 6. 参考
 
-- 本地 DSD-FME 源码：`C:\Users\Zhan\AppData\Local\Temp\opencode\bmrf\dsd-fme\dsd-fme-audio_work`
+- 本地 DSD-FME 源码：`C:\Users\<user>\AppData\Local\Temp\opencode\bmrf\dsd-fme\dsd-fme-audio_work`
   - `src/dmr_bs.c`（语音突发布局）、`src/dmr_data.c`（数据突发布局）、
   - `src/bptc.c`（BPTC 表与解码）、`src/dmr_flco.c`（LC 字段）、
   - `src/dsd_symbol.c`（符号判决/门限）、`src/fec.c`（Hamming）。
-- 采集样本：`C:\Users\Zhan\AppData\Local\Temp\opencode\bmrf\`（`pc_capture.cu8` 为 PC 干净采集）。
+- 采集样本：`C:\Users\<user>\AppData\Local\Temp\opencode\bmrf\`（`pc_capture.cu8` 为 PC 干净采集）。
 
 ---
 
