@@ -212,7 +212,7 @@ class MainActivity : AppCompatActivity() {
     private fun loadConnectionFields() {
         hostInput.setText(prefs.getString("host", "4602.master.brandmeister.network"))
         portInput.setText(prefs.getString("port", "62031"))
-        idInput.setText(prefs.getString("id", "4615543"))
+        idInput.setText(prefs.getString("id", ""))
         callsignInput.setText(prefs.getString("callsign", ""))
         passwordInput.setText(prefs.getString("password", ""))
         apiKeyInput.setText(prefs.getString("apiKey", ""))

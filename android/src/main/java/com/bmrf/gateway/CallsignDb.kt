@@ -116,7 +116,7 @@ object CallsignDb {
         return fresh.size
     }
 
-    /** "4615543 BG7KNO" when known, otherwise just "4615543". */
+    /** "1234567 AB1CDE" when known, otherwise just "1234567". */
     fun display(id: Long): String {
         val callsign = map[id]
         return if (callsign.isNullOrEmpty()) id.toString() else "$id $callsign"

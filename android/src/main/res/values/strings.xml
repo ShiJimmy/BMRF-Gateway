@@ -19,7 +19,7 @@
 
     <string name="default_host">4602.master.brandmeister.network</string>
     <string name="default_port">62031</string>
-    <string name="default_id">4615543</string>
+    <string name="default_id"></string>
 
     <string name="action_start">Start</string>
     <string name="action_stop">Stop</string>
