@@ -86,7 +86,7 @@ BMRF_TEST(client_uplink_talkgroup_change_restarts_call)
     cfg.repeater_id = 0x00466d77;
     cfg.password = "p";
     cfg.repeater.id = 0x00466d77;
-    cfg.repeater.callsign = "BG7KNO";
+    cfg.repeater.callsign = "BMRF";
 
     HomebrewClient client(std::move(transport), cfg);
     client.start(1000);
